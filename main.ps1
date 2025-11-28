@@ -1,15 +1,15 @@
 ﻿# ===== CONFIGURATION & VALIDATION =====
 $ScpHost          = "127.0.0.1"
-$ScpUser          = "...."
-$ScpPassword      = "...."
+$ScpUser          = "shibe"
+$ScpPassword      = "shibe1302"
 $Protocol         = "Sftp"                          
 $RemoteFolder     = "/ucg"                          
 $LocalDestination = "E:\download_log"               
 $winscpDllPath    = "C:\Program Files (x86)\WinSCP\WinSCPnet.dll"
 $MacFilePath      = "E:\nghien_cuu_FTU\UCG_FIBER_40pcs_log\data.txt"          
-$MaxScanThreads   = 10  
-$MaxDownloadThreads = 10  
-$ConnectionTimeout = 5  
+$MaxScanThreads   = 10  # Số luồng tối đa cho việc scan
+$MaxDownloadThreads = 10  # Số luồng tối đa cho việc download
+$ConnectionTimeout = 30  # seconds
 
 
 # ===== FUNCTION: Validate Configuration =====
