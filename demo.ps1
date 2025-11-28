@@ -1,7 +1,7 @@
 ﻿# ===== CONFIGURATION & VALIDATION =====
 $ScpHost          = "127.0.0.1"
-$ScpUser          = "....."
-$ScpPassword      = "....."
+$ScpUser          = "aa"
+$ScpPassword      = "aaaaaaaa"
 $Protocol         = "Sftp"                          
 $RemoteFolder     = "/ucg"                          
 $LocalDestination = "E:\download_log"               
