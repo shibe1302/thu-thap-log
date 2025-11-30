@@ -1,7 +1,7 @@
 # ==================== CONFIGURATION ====================
 $ScpHost = "127.0.0.1"
-$ScpUser = "shibe"
-$ScpPassword = "shibe1302"
+$ScpUser = "aa"
+$ScpPassword = "aa"
 $Protocol = "SFTP"                          
 $RemoteFolder = "/tess2/ucg"                          
 $LocalDestination = "E:\download_log"               

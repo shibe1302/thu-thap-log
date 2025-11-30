@@ -26,13 +26,13 @@ function Get-MacFromFileName {
 $sessionOptions = New-Object WinSCP.SessionOptions
 $sessionOptions.Protocol = [WinSCP.Protocol]::Sftp
 $sessionOptions.HostName = "127.0.0.1"  # <--- Thay IP Server
-$sessionOptions.UserName = "shibe"       # <--- Thay User
-$sessionOptions.Password = "shibe1302"       # <--- Thay Pass
+$sessionOptions.UserName = "a"       # <--- Thay User
+$sessionOptions.Password = "a"       # <--- Thay Pass
 $sessionOptions.GiveUpSecurityAndAcceptAnySshHostKey = $true
 
 # --- INPUT TỪ NGƯỜI DÙNG ---
 $InputMac = "1C0B8B181B38"  # Địa chỉ MAC bạn muốn tìm
-$RemotePath = "/ucg" # Thư mục gốc trên server muốn quét
+$RemotePath = "tess2/ucg" # Thư mục gốc trên server muốn quét
 
 # --- BẮT ĐẦU XỬ LÝ ---
 $session = New-Object WinSCP.Session
