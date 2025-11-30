@@ -1,4 +1,4 @@
-﻿
+# ==================== CONFIGURATION ====================
 $ScpHost = "127.0.0.1"
 $ScpUser = "shibe"
 $ScpPassword = "shibe1302"
@@ -12,11 +12,12 @@ $MaxDownloadThreads = 10
 $ConnectionTimeout = 30  
 $Port = "22"
 
-
+# ==================== GLOBAL VARIABLES ====================
 $Global:MacRegex = [regex]::new("(_[^_]+_)", [System.Text.RegularExpressions.RegexOptions]::Compiled)
+
+# ==================== VALIDATION FUNCTION ====================
 function Validate-Configuration {
     Write-Host "[Validation] Checking configuration..." -ForegroundColor Cyan
-    
     
     $ValidProtocols = @("SFTP", "Scp", "Ftp", "Ftps", "Webdav", "S3")
     if ($Protocol -notin $ValidProtocols) {
@@ -29,28 +30,25 @@ function Validate-Configuration {
         exit 1
     }
     
-    
     if (-not (Test-Path $winscpDllPath)) {
         [System.Windows.Forms.MessageBox]::Show(
-            "Loi: khong tìm thay WinSCP DLL tai:`n$winscpDllPath`n`nVui long kiem tra duong dan cai dat WinSCP.",
+            "Loi: khong tìm thay WinSCP DLL tai:`n$winscpDllPath",
             "File Not Found",
             [System.Windows.Forms.MessageBoxButtons]::OK,
             [System.Windows.Forms.MessageBoxIcon]::Error
         )
         exit 1
     }
-    
     
     if (-not (Test-Path $MacFilePath)) {
         [System.Windows.Forms.MessageBox]::Show(
-            "Loi: khong tìm thay file MAC list tai:`n$MacFilePath`n`nVui long kiem tra duong dan file.",
+            "Loi: khong tìm thay file MAC list tai:`n$MacFilePath",
             "File Not Found",
             [System.Windows.Forms.MessageBoxButtons]::OK,
             [System.Windows.Forms.MessageBoxIcon]::Error
         )
         exit 1
     }
-    
     
     if (-not (Test-Path $LocalDestination)) {
         try {
@@ -59,7 +57,7 @@ function Validate-Configuration {
         }
         catch {
             [System.Windows.Forms.MessageBox]::Show(
-                "Loi: khong thể tạo folder đích:`n$LocalDestination`n`nLoi: $($_.Exception.Message)",
+                "Loi: khong thể tạo folder đích:`n$LocalDestination",
                 "Directory Creation Error",
                 [System.Windows.Forms.MessageBoxButtons]::OK,
                 [System.Windows.Forms.MessageBoxIcon]::Error
@@ -67,64 +65,11 @@ function Validate-Configuration {
             exit 1
         }
     }
-    else {
-        Write-Host "Folder đích tồn tai: $LocalDestination" -ForegroundColor Green
-    }
-    
-    
-    try {
-        $testFile = Join-Path $LocalDestination ".write_test_$([System.IO.Path]::GetRandomFileName())"
-        [System.IO.File]::WriteAllText($testFile, "test")
-        Remove-Item $testFile -Force
-        Write-Host "Có quyen ghi vào folder đích" -ForegroundColor Green
-    }
-    catch {
-        [System.Windows.Forms.MessageBox]::Show(
-            "Loi: khong có quyen ghi vào folder đích:`n$LocalDestination`n`nLoi: $($_.Exception.Message)",
-            "Permission Denied",
-            [System.Windows.Forms.MessageBoxButtons]::OK,
-            [System.Windows.Forms.MessageBoxIcon]::Error
-        )
-        exit 1
-    }
-    
-    
-    if ([string]::IsNullOrWhiteSpace($ScpHost)) {
-        [System.Windows.Forms.MessageBox]::Show(
-            "Loi: Host/IP khong duoc de trống!",
-            "Configuration Error",
-            [System.Windows.Forms.MessageBoxButtons]::OK,
-            [System.Windows.Forms.MessageBoxIcon]::Error
-        )
-        exit 1
-    }
-    
-    
-    if ([string]::IsNullOrWhiteSpace($ScpUser) -or [string]::IsNullOrWhiteSpace($ScpPassword)) {
-        [System.Windows.Forms.MessageBox]::Show(
-            "Loi: Tên nguoi dung hoac mat khau khong duoc de trống!",
-            "Configuration Error",
-            [System.Windows.Forms.MessageBoxButtons]::OK,
-            [System.Windows.Forms.MessageBoxIcon]::Error
-        )
-        exit 1
-    }
-    
-    
-    if ([string]::IsNullOrWhiteSpace($RemoteFolder)) {
-        [System.Windows.Forms.MessageBox]::Show(
-            "Loi: thu muc remote khong duoc de trống!",
-            "Configuration Error",
-            [System.Windows.Forms.MessageBoxButtons]::OK,
-            [System.Windows.Forms.MessageBoxIcon]::Error
-        )
-        exit 1
-    }
     
     Write-Host "Tất cả cau hinh hop le`n" -ForegroundColor Green
 }
 
-
+# ==================== LOAD DLL ====================
 function Load-WinSCPDll {
     Write-Host "[Loading] dang tai WinSCP DLL..." -ForegroundColor Cyan
     try {
@@ -133,7 +78,7 @@ function Load-WinSCPDll {
     }
     catch {
         [System.Windows.Forms.MessageBox]::Show(
-            "Loi: khong thể tai WinSCP DLL:`n`nLoi: $($_.Exception.Message)`n`ndam bao WinSCP đã được cai dat dung cách.",
+            "Loi: khong thể tai WinSCP DLL:`n`n$($_.Exception.Message)",
             "DLL Loading Error",
             [System.Windows.Forms.MessageBoxButtons]::OK,
             [System.Windows.Forms.MessageBoxIcon]::Error
@@ -142,7 +87,7 @@ function Load-WinSCPDll {
     }
 }
 
-
+# ==================== TEST CONNECTION ====================
 function Test-ServerConnection {
     Write-Host "[Connection] dang kiem tra ket noi server..." -ForegroundColor Cyan
     
@@ -165,39 +110,12 @@ function Test-ServerConnection {
         }
         catch {
             $errorMsg = $_.Exception.Message
-            
-            if ($errorMsg -match "timed out|Timeout|Time out") {
-                [System.Windows.Forms.MessageBox]::Show(
-                    "Loi Timeout: Request vuot quá $ConnectionTimeout giay.`n`nkiem tra:`n- Host/IP: $ScpHost`n- ket noi mạng`n- Firewall settings",
-                    "Connection Timeout",
-                    [System.Windows.Forms.MessageBoxButtons]::OK,
-                    [System.Windows.Forms.MessageBoxIcon]::Error
-                )
-            }
-            elseif ($errorMsg -match "refused|Refused|refused to connect") {
-                [System.Windows.Forms.MessageBox]::Show(
-                    "Loi: Server tu choi ket noi.`n`nkiem tra:`n- Host/IP có dung khong: $ScpHost`n- Port có mở khong`n- Server dang chạy?",
-                    "Connection Refused",
-                    [System.Windows.Forms.MessageBoxButtons]::OK,
-                    [System.Windows.Forms.MessageBoxIcon]::Error
-                )
-            }
-            elseif ($errorMsg -match "Authentication failed|auth|denied|password|username") {
-                [System.Windows.Forms.MessageBox]::Show(
-                    "Loi xac thuc: Tên nguoi dung hoac mat khau khong dung!`n`nVui long kiem tra:`n- Username: $ScpUser`n- Password`n- Protocol: $Protocol",
-                    "Authentication Failed",
-                    [System.Windows.Forms.MessageBoxButtons]::OK,
-                    [System.Windows.Forms.MessageBoxIcon]::Error
-                )
-            }
-            else {
-                [System.Windows.Forms.MessageBox]::Show(
-                    "Loi ket noi server:`n`n$errorMsg`n`nHost: $ScpHost`nProtocol: $Protocol",
-                    "Connection Error",
-                    [System.Windows.Forms.MessageBoxButtons]::OK,
-                    [System.Windows.Forms.MessageBoxIcon]::Error
-                )
-            }
+            [System.Windows.Forms.MessageBox]::Show(
+                "Loi ket noi server:`n`n$errorMsg",
+                "Connection Error",
+                [System.Windows.Forms.MessageBoxButtons]::OK,
+                [System.Windows.Forms.MessageBoxIcon]::Error
+            )
             return $false
         }
         finally {
@@ -205,54 +123,12 @@ function Test-ServerConnection {
         }
     }
     catch {
-        [System.Windows.Forms.MessageBox]::Show(
-            "Loi khong mong muốn khi kiem tra ket noi:`n`n$($_.Exception.Message)",
-            "Unexpected Error",
-            [System.Windows.Forms.MessageBoxButtons]::OK,
-            [System.Windows.Forms.MessageBoxIcon]::Error
-        )
         return $false
     }
 }
 
-
-function Test-RemoteFolder {
-    param($Session)
-    
-    Write-Host "[RemoteFolder] kiem tra thu muc remote: $RemoteFolder" -ForegroundColor Cyan
-    
-    try {
-        $fileInfos = $Session.EnumerateRemoteFiles($RemoteFolder, $null, [WinSCP.EnumerationOptions]::None)
-        $fileInfos | Select-Object -First 1 | Out-Null
-        Write-Host "thu muc remote OK" -ForegroundColor Green
-        return $true
-    }
-    catch {
-        $errorMsg = $_.Exception.Message
-        
-        [System.Windows.Forms.MessageBox]::Show(
-            "Loi: khong thể truy cap thu muc remote!`n`nthu muc: $RemoteFolder`n`nLoi: $errorMsg`n`nkiem tra:`n- duong dan có dung khong`n- thu muc có tồn tai khong`n- Có quyen truy cap khong",
-            "Remote Folder Error",
-            [System.Windows.Forms.MessageBoxButtons]::OK,
-            [System.Windows.Forms.MessageBoxIcon]::Error
-        )
-        return $false
-    }
-}
-
-
-function Get-MacFromFileName {
-    param ($FileName)
-    $match = $Global:MacRegex.Match($FileName)
-    if ($match.Success) {
-        return $match.Groups[1].Value.Trim('_')
-    }
-    return $null
-}
-
-
-
-Write-Host "`n========== SCP/SFTP PARALLEL FILE SCANNER - OPTIMIZED VERSION ==========" -ForegroundColor Magenta
+# ==================== MAIN SCRIPT ====================
+Write-Host "`n========== SCP/SFTP PARALLEL FILE SCANNER - EnumerateRemoteFiles VERSION ==========" -ForegroundColor Magenta
 Validate-Configuration
 Load-WinSCPDll
 
@@ -260,15 +136,10 @@ if (-not (Test-ServerConnection)) {
     Write-Host "Validation failed. Exiting." -ForegroundColor Red
     exit 1
 }
-Write-Host ""
-
-if (-not (Test-Path $LocalDestination)) { 
-    New-Item -ItemType Directory -Path $LocalDestination | Out-Null 
-}
-
-
 
 $start = Get-Date
+
+# ==================== STEP 1: LOAD MAC DATABASE ====================
 Write-Host "[1/5] Dang doc danh sach MAC..." -ForegroundColor Cyan
 $MacDb = @{}
 
@@ -282,32 +153,21 @@ try {
             }
         }
         if ($MacDb.Count -eq 0) {
-            [System.Windows.Forms.MessageBox]::Show(
-                "canh bao: File MAC list khong chứa du lieu hop le!`n`nFile: $MacFilePath",
-                "Empty MAC List",
-                [System.Windows.Forms.MessageBoxButtons]::OK,
-                [System.Windows.Forms.MessageBoxIcon]::Warning
-            )
+            Write-Host "canh bao: File MAC list rong!" -ForegroundColor Yellow
             exit 1
         }
         Write-Host "-> Da nap $($MacDb.Count) MAC vao bo nho." -ForegroundColor Green
     } 
     else {
-        throw "khong tìm thay file MAC list tai: $MacFilePath"
+        throw "khong tìm thay file MAC list"
     }
 }
 catch {
-    [System.Windows.Forms.MessageBox]::Show(
-        "Loi khi đọc file MAC list:`n`n$($_.Exception.Message)",
-        "MAC File Error",
-        [System.Windows.Forms.MessageBoxButtons]::OK,
-        [System.Windows.Forms.MessageBoxIcon]::Error
-    )
+    Write-Error "Loi khi đọc file MAC list: $($_.Exception.Message)"
     exit 1
 }
 
-
-
+# ==================== STEP 2: GET ROOT FOLDERS ====================
 Write-Host "[2/5] Dang lay danh sach folder con trong $RemoteFolder..." -ForegroundColor Cyan
 
 $RootFolders = @()
@@ -349,11 +209,10 @@ finally {
     $session.Dispose()
 }
 
+# ==================== STEP 3: PARALLEL SCAN WITH EnumerateRemoteFiles ====================
+Write-Host "[3/5] Dang khoi tao scan song song voi EnumerateRemoteFiles..." -ForegroundColor Cyan
 
-
-Write-Host "[3/5] Dang khoi tao scan song song voi toi da $MaxScanThreads luong..." -ForegroundColor Cyan
-
-
+# Chia folders thành batches
 $FolderBatches = @()
 $BatchSize = [Math]::Ceiling($RootFolders.Count / $MaxScanThreads)
 
@@ -365,71 +224,63 @@ for ($i = 0; $i -lt $RootFolders.Count; $i += $BatchSize) {
 
 Write-Host "-> Chia thanh $($FolderBatches.Count) batch de xu ly" -ForegroundColor Cyan
 
-
-
+# ScriptBlock cho scan job với EnumerateRemoteFiles
 $ScanJobBlock = {
-    param($FolderList, $MacDbKeys, $SessionOptsHash, $DllPath)
-    
+    param($FolderList, $MacDbKeys, $SessionOptsHash, $DllPath, $PortNumber)
     
     Add-Type -Path $DllPath
-    
     
     $LocalResults = @{}
     $ScannedCount = 0
     
-    
+    # Tạo session options
     $jobOptions = New-Object WinSCP.SessionOptions
     $jobOptions.Protocol = [WinSCP.Protocol]::Sftp
     $jobOptions.HostName = $SessionOptsHash.HostName
     $jobOptions.UserName = $SessionOptsHash.UserName
     $jobOptions.Password = $SessionOptsHash.Password
     $jobOptions.GiveUpSecurityAndAcceptAnySshHostKey = $true
-    $jobOptions.PortNumber = $Port
+    $jobOptions.PortNumber = $PortNumber
     
     $jobSession = New-Object WinSCP.Session
-    
-    
-    function Scan-FolderRecursive {
-        param($Path, $Session, $MacKeys, $Results, [ref]$Counter)
-        
-        try {
-            $dirInfo = $Session.ListDirectory($Path)
-            
-            foreach ($fileInfo in $dirInfo.Files) {
-                if ($fileInfo.Name -eq "." -or $fileInfo.Name -eq "..") { continue }
-                
-                if ($fileInfo.IsDirectory) {
-                    Scan-FolderRecursive -Path $fileInfo.FullName -Session $Session -MacKeys $MacKeys -Results $Results -Counter $Counter
-                }
-                else {
-                    $Counter.Value++
-                    
-                    
-                    if ($fileInfo.Name -match "(_[^_]+_)") {
-                        $extractedMac = $matches[1].Trim('_').ToUpper()
-                        
-                        if ($MacKeys -contains $extractedMac) {
-                            $Results[$fileInfo.FullName] = $fileInfo.Name
-                        }
-                    }
-                }
-            }
-        }
-        catch {
-            Write-Warning "Job: Khong the truy cap folder: $Path"
-        }
-    }
     
     try {
         $jobSession.Open($jobOptions)
         
-        
+        # Duyệt qua từng folder trong batch
         foreach ($folder in $FolderList) {
-            $counter = 0
-            Scan-FolderRecursive -Path $folder -Session $jobSession -MacKeys $MacDbKeys -Results $LocalResults -Counter ([ref]$counter)
-            $ScannedCount += $counter
+            try {
+                # SỬ DỤNG EnumerateRemoteFiles - duyệt đệ quy tự động
+                # "*" = wildcard để lấy tất cả file
+                # EnumerationOptions.AllDirectories = duyệt đệ quy vào subfolder
+                $fileInfos = $jobSession.EnumerateRemoteFiles(
+                    $folder, 
+                    "*", 
+                    [WinSCP.EnumerationOptions]::AllDirectories
+                )
+                
+                # Xử lý từng file được tìm thấy
+                foreach ($fileInfo in $fileInfos) {
+                    $ScannedCount++
+                    
+                    # Bỏ qua thư mục
+                    if ($fileInfo.IsDirectory) { continue }
+                    
+                    # Extract MAC từ filename
+                    if ($fileInfo.Name -match "(_[^_]+_)") {
+                        $extractedMac = $matches[1].Trim('_').ToUpper()
+                        
+                        # Kiểm tra MAC có trong database không
+                        if ($MacDbKeys -contains $extractedMac) {
+                            $LocalResults[$fileInfo.FullName] = $fileInfo.Name
+                        }
+                    }
+                }
+            }
+            catch {
+                Write-Warning "Job: Khong the truy cap folder: $folder - $($_.Exception.Message)"
+            }
         }
-        
         
         return @{
             Files        = $LocalResults
@@ -448,7 +299,7 @@ $ScanJobBlock = {
     }
 }
 
-
+# Chuẩn bị parameters
 $SessionOptsHash = @{
     HostName = $ScpHost
     UserName = $ScpUser
@@ -456,20 +307,20 @@ $SessionOptsHash = @{
 }
 $MacDbKeys = $MacDb.Keys
 
-
+# Khởi tạo scan jobs
 $ScanJobs = @()
 $jobIndex = 0
 foreach ($batch in $FolderBatches) {
     $jobIndex++
     Write-Host "   -> Khoi tao Job #$jobIndex voi $($batch.Count) folder(s)" -ForegroundColor Gray
-    $ScanJobs += Start-Job -ScriptBlock $ScanJobBlock -ArgumentList $batch, $MacDbKeys, $SessionOptsHash, $winscpDllPath
+    $ScanJobs += Start-Job -ScriptBlock $ScanJobBlock -ArgumentList $batch, $MacDbKeys, $SessionOptsHash, $winscpDllPath, $Port
 }
 
-
+# Chờ jobs hoàn thành
 Write-Host "-> Dang cho cac job hoan thanh..." -ForegroundColor Cyan
 $ScanJobs | Wait-Job | Out-Null
 
-
+# Thu thập kết quả
 $FilesToDownload = [System.Collections.Generic.List[object]]::new()
 $TotalScanned = 0
 
@@ -481,13 +332,12 @@ foreach ($job in $ScanJobs) {
         
         foreach ($key in $result.Files.Keys) {
             $FilesToDownload.Add(@{
-                    RemotePath = $key
-                    FileName   = $result.Files[$key]
-                })
+                RemotePath = $key
+                FileName   = $result.Files[$key]
+            })
         }
     }
 }
-
 
 $ScanJobs | Remove-Job
 
@@ -501,10 +351,8 @@ if ($TotalFiles -eq 0) {
     exit 
 }
 
-
-
+# ==================== STEP 4: PARALLEL DOWNLOAD ====================
 Write-Host "[4/5] Dang khoi tao $MaxDownloadThreads luong tai xuong..." -ForegroundColor Cyan
-
 
 $DownloadBatches = @()
 $DownloadBatchSize = [Math]::Ceiling($TotalFiles / $MaxDownloadThreads)
@@ -513,9 +361,8 @@ for ($i = 0; $i -lt $TotalFiles; $i += $DownloadBatchSize) {
     $DownloadBatches += , $FilesToDownload.GetRange($i, $count)
 }
 
-
 $DownloadJobBlock = {
-    param($FileBatch, $SessionOptsHash, $DllPath, $DestDir)
+    param($FileBatch, $SessionOptsHash, $DllPath, $DestDir, $PortNumber)
     
     Add-Type -Path $DllPath
     
@@ -525,7 +372,7 @@ $DownloadJobBlock = {
     $jobOptions.UserName = $SessionOptsHash.UserName
     $jobOptions.Password = $SessionOptsHash.Password
     $jobOptions.GiveUpSecurityAndAcceptAnySshHostKey = $true
-    $jobOptions.PortNumber = $Port
+    $jobOptions.PortNumber = $PortNumber
 
     $jobSession = New-Object WinSCP.Session
     
@@ -570,10 +417,9 @@ $DownloadJobBlock = {
     }
 }
 
-
 $DownloadJobs = @()
 foreach ($batch in $DownloadBatches) {
-    $DownloadJobs += Start-Job -ScriptBlock $DownloadJobBlock -ArgumentList $batch, $SessionOptsHash, $winscpDllPath, $LocalDestination
+    $DownloadJobs += Start-Job -ScriptBlock $DownloadJobBlock -ArgumentList $batch, $SessionOptsHash, $winscpDllPath, $LocalDestination, $Port
 }
 
 Write-Host "[5/5] Dang tai xuong..." -ForegroundColor Cyan
@@ -581,8 +427,7 @@ $DownloadJobs | Wait-Job | Out-Null
 $DownloadJobs | Receive-Job
 $DownloadJobs | Remove-Job
 
-
-
+# ==================== SUMMARY ====================
 Write-Host "`n========================================" -ForegroundColor Green
 Write-Host "HOAN TAT! Kiem tra folder: $LocalDestination" -ForegroundColor Green
 Write-Host "========================================" -ForegroundColor Green
