@@ -1,23 +1,24 @@
-﻿# ===== CONFIGURATION & VALIDATION =====
-$ScpHost          = "127.0.0.1"
-$ScpUser          = "aaaaaaaa"
-$ScpPassword      = "aaaa"
-$Protocol         = "Sftp"                          
-$RemoteFolder     = "/ucg"                          
+﻿
+$ScpHost = "127.0.0.1"
+$ScpUser = "shibe"
+$ScpPassword = "shibe1302"
+$Protocol = "SFTP"                          
+$RemoteFolder = "/ucg"                          
 $LocalDestination = "E:\download_log"               
-$winscpDllPath    = "C:\Program Files (x86)\WinSCP\WinSCPnet.dll"
-$MacFilePath      = "E:\nghien_cuu_FTU\UCG_FIBER_40pcs_log\data.txt"          
-$MaxScanThreads   = 10  # Số luồng tối đa cho việc scan
-$MaxDownloadThreads = 10  # Số luồng tối đa cho việc download
-$ConnectionTimeout = 30  # seconds
+$winscpDllPath = "C:\Program Files (x86)\WinSCP\WinSCPnet.dll"
+$MacFilePath = "E:\nghien_cuu_FTU\UCG_FIBER_40pcs_log\data.txt"          
+$MaxScanThreads = 10  
+$MaxDownloadThreads = 10  
+$ConnectionTimeout = 30  
+$Port = "22"
 
 
-# ===== FUNCTION: Validate Configuration =====
+
 function Validate-Configuration {
     Write-Host "[Validation] Checking configuration..." -ForegroundColor Cyan
     
-    # Validate Protocol
-    $ValidProtocols = @("Sftp", "Scp", "Ftp", "Ftps", "Webdav", "S3")
+    
+    $ValidProtocols = @("SFTP", "Scp", "Ftp", "Ftps", "Webdav", "S3")
     if ($Protocol -notin $ValidProtocols) {
         [System.Windows.Forms.MessageBox]::Show(
             "Loi Protocol: '$Protocol' khong hop le!`n`nProtocol hop le: $($ValidProtocols -join ', ')",
@@ -28,7 +29,7 @@ function Validate-Configuration {
         exit 1
     }
     
-    # Validate WinSCP DLL Path
+    
     if (-not (Test-Path $winscpDllPath)) {
         [System.Windows.Forms.MessageBox]::Show(
             "Loi: khong tìm thay WinSCP DLL tai:`n$winscpDllPath`n`nVui long kiem tra duong dan cai dat WinSCP.",
@@ -39,7 +40,7 @@ function Validate-Configuration {
         exit 1
     }
     
-    # Validate MacFilePath
+    
     if (-not (Test-Path $MacFilePath)) {
         [System.Windows.Forms.MessageBox]::Show(
             "Loi: khong tìm thay file MAC list tai:`n$MacFilePath`n`nVui long kiem tra duong dan file.",
@@ -50,7 +51,7 @@ function Validate-Configuration {
         exit 1
     }
     
-    # Validate LocalDestination - create if doesn't exist
+    
     if (-not (Test-Path $LocalDestination)) {
         try {
             New-Item -ItemType Directory -Path $LocalDestination -Force | Out-Null
@@ -70,7 +71,7 @@ function Validate-Configuration {
         Write-Host "Folder đích tồn tai: $LocalDestination" -ForegroundColor Green
     }
     
-    # Test write permission to LocalDestination
+    
     try {
         $testFile = Join-Path $LocalDestination ".write_test_$([System.IO.Path]::GetRandomFileName())"
         [System.IO.File]::WriteAllText($testFile, "test")
@@ -87,7 +88,7 @@ function Validate-Configuration {
         exit 1
     }
     
-    # Validate Host/IP
+    
     if ([string]::IsNullOrWhiteSpace($ScpHost)) {
         [System.Windows.Forms.MessageBox]::Show(
             "Loi: Host/IP khong duoc de trống!",
@@ -98,7 +99,7 @@ function Validate-Configuration {
         exit 1
     }
     
-    # Validate credentials
+    
     if ([string]::IsNullOrWhiteSpace($ScpUser) -or [string]::IsNullOrWhiteSpace($ScpPassword)) {
         [System.Windows.Forms.MessageBox]::Show(
             "Loi: Tên nguoi dung hoac mat khau khong duoc de trống!",
@@ -109,7 +110,7 @@ function Validate-Configuration {
         exit 1
     }
     
-    # Validate RemoteFolder
+    
     if ([string]::IsNullOrWhiteSpace($RemoteFolder)) {
         [System.Windows.Forms.MessageBox]::Show(
             "Loi: thu muc remote khong duoc de trống!",
@@ -123,7 +124,7 @@ function Validate-Configuration {
     Write-Host "Tất cả cau hinh hop le`n" -ForegroundColor Green
 }
 
-# ===== FUNCTION: Load WinSCP DLL =====
+
 function Load-WinSCPDll {
     Write-Host "[Loading] dang tai WinSCP DLL..." -ForegroundColor Cyan
     try {
@@ -141,7 +142,7 @@ function Load-WinSCPDll {
     }
 }
 
-# ===== FUNCTION: Test Server Connection =====
+
 function Test-ServerConnection {
     Write-Host "[Connection] dang kiem tra ket noi server..." -ForegroundColor Cyan
     
@@ -153,6 +154,7 @@ function Test-ServerConnection {
         $sessionOptions.Password = $ScpPassword
         $sessionOptions.Timeout = New-TimeSpan -Seconds $ConnectionTimeout
         $sessionOptions.GiveUpSecurityAndAcceptAnySshHostKey = $true
+        $sessionOptions.PortNumber = $Port
         
         $testSession = New-Object WinSCP.Session
         
@@ -213,15 +215,16 @@ function Test-ServerConnection {
     }
 }
 
-# ===== FUNCTION: Test Remote Folder =====
+
 function Test-RemoteFolder {
     param($Session)
     
     Write-Host "[RemoteFolder] kiem tra thu muc remote: $RemoteFolder" -ForegroundColor Cyan
     
     try {
-        $dirInfo = $Session.ListDirectory($RemoteFolder)
-        Write-Host "thu muc remote tồn tai và có thể truy cap" -ForegroundColor Green
+        $fileInfos = $Session.EnumerateRemoteFiles($RemoteFolder, $null, [WinSCP.EnumerationOptions]::None)
+        $fileInfos | Select-Object -First 1 | Out-Null
+        Write-Host "thu muc remote OK" -ForegroundColor Green
         return $true
     }
     catch {
@@ -237,7 +240,7 @@ function Test-RemoteFolder {
     }
 }
 
-# ===== FUNCTION: Extract MAC from filename =====
+
 function Get-MacFromFileName {
     param ($FileName)
     if ($FileName -match "(_[^_]+_)") {
@@ -247,13 +250,13 @@ function Get-MacFromFileName {
 }
 
 
-# ===== MAIN VALIDATION WORKFLOW =====
+
 Write-Host "`n========== SCP/SFTP PARALLEL FILE SCANNER - OPTIMIZED VERSION ==========" -ForegroundColor Magenta
 Validate-Configuration
 Load-WinSCPDll
 
 if (-not (Test-ServerConnection)) {
-    Write-Host "✗ Validation failed. Exiting." -ForegroundColor Red
+    Write-Host "Validation failed. Exiting." -ForegroundColor Red
     exit 1
 }
 Write-Host ""
@@ -263,7 +266,7 @@ if (-not (Test-Path $LocalDestination)) {
 }
 
 
-# ===== PHASE 1: Load MAC Database =====
+
 $start = Get-Date
 Write-Host "[1/5] Dang doc danh sach MAC..." -ForegroundColor Cyan
 $MacDb = @{}
@@ -303,7 +306,7 @@ catch {
 }
 
 
-# ===== PHASE 2: Get Root Level Folders =====
+
 Write-Host "[2/5] Dang lay danh sach folder con trong $RemoteFolder..." -ForegroundColor Cyan
 
 $RootFolders = @()
@@ -313,6 +316,7 @@ $sessionOptions.HostName = $ScpHost
 $sessionOptions.UserName = $ScpUser
 $sessionOptions.Password = $ScpPassword
 $sessionOptions.GiveUpSecurityAndAcceptAnySshHostKey = $true
+$sessionOptions.PortNumber = $Port
 
 $session = New-Object WinSCP.Session
 
@@ -345,44 +349,45 @@ finally {
 }
 
 
-# ===== PHASE 3: Parallel Scanning với Job Batching =====
+
 Write-Host "[3/5] Dang khoi tao scan song song voi toi da $MaxScanThreads luong..." -ForegroundColor Cyan
 
-# Chia folders thành batches để tránh tạo quá nhiều jobs
+
 $FolderBatches = @()
 $BatchSize = [Math]::Ceiling($RootFolders.Count / $MaxScanThreads)
 
 for ($i = 0; $i -lt $RootFolders.Count; $i += $BatchSize) {
     $count = [Math]::Min($BatchSize, ($RootFolders.Count - $i))
     $batch = $RootFolders[$i..($i + $count - 1)]
-    $FolderBatches += ,$batch
+    $FolderBatches += , $batch
 }
 
 Write-Host "-> Chia thanh $($FolderBatches.Count) batch de xu ly" -ForegroundColor Cyan
 
 
-# ScriptBlock cho việc scan song song
+
 $ScanJobBlock = {
     param($FolderList, $MacDbKeys, $SessionOptsHash, $DllPath)
     
-    # Load DLL trong job
+    
     Add-Type -Path $DllPath
     
-    # Tạo hashtable riêng cho job này
+    
     $LocalResults = @{}
     $ScannedCount = 0
     
-    # Tạo session riêng
+    
     $jobOptions = New-Object WinSCP.SessionOptions
     $jobOptions.Protocol = [WinSCP.Protocol]::Sftp
     $jobOptions.HostName = $SessionOptsHash.HostName
     $jobOptions.UserName = $SessionOptsHash.UserName
     $jobOptions.Password = $SessionOptsHash.Password
     $jobOptions.GiveUpSecurityAndAcceptAnySshHostKey = $true
+    $jobOptions.PortNumber = $Port
     
     $jobSession = New-Object WinSCP.Session
     
-    # Function để scan đệ quy
+    
     function Scan-FolderRecursive {
         param($Path, $Session, $MacKeys, $Results, [ref]$Counter)
         
@@ -398,7 +403,7 @@ $ScanJobBlock = {
                 else {
                     $Counter.Value++
                     
-                    # Extract MAC
+                    
                     if ($fileInfo.Name -match "(_[^_]+_)") {
                         $extractedMac = $matches[1].Trim('_').ToUpper()
                         
@@ -417,23 +422,23 @@ $ScanJobBlock = {
     try {
         $jobSession.Open($jobOptions)
         
-        # Scan từng folder trong batch
+        
         foreach ($folder in $FolderList) {
             $counter = 0
             Scan-FolderRecursive -Path $folder -Session $jobSession -MacKeys $MacDbKeys -Results $LocalResults -Counter ([ref]$counter)
             $ScannedCount += $counter
         }
         
-        # Return kết quả
+        
         return @{
-            Files = $LocalResults
+            Files        = $LocalResults
             ScannedCount = $ScannedCount
         }
     }
     catch {
         Write-Error "Job Session Error: $($_.Exception.Message)"
         return @{
-            Files = @{}
+            Files        = @{}
             ScannedCount = 0
         }
     }
@@ -442,7 +447,7 @@ $ScanJobBlock = {
     }
 }
 
-# Chuẩn bị dữ liệu cho jobs
+
 $SessionOptsHash = @{
     HostName = $ScpHost
     UserName = $ScpUser
@@ -450,7 +455,7 @@ $SessionOptsHash = @{
 }
 $MacDbKeys = $MacDb.Keys
 
-# Khởi chạy các jobs
+
 $ScanJobs = @()
 $jobIndex = 0
 foreach ($batch in $FolderBatches) {
@@ -459,11 +464,11 @@ foreach ($batch in $FolderBatches) {
     $ScanJobs += Start-Job -ScriptBlock $ScanJobBlock -ArgumentList $batch, $MacDbKeys, $SessionOptsHash, $winscpDllPath
 }
 
-# Đợi và thu thập kết quả
+
 Write-Host "-> Dang cho cac job hoan thanh..." -ForegroundColor Cyan
 $ScanJobs | Wait-Job | Out-Null
 
-# Merge kết quả từ tất cả các jobs
+
 $FilesToDownload = [System.Collections.Generic.List[object]]::new()
 $TotalScanned = 0
 
@@ -475,14 +480,14 @@ foreach ($job in $ScanJobs) {
         
         foreach ($key in $result.Files.Keys) {
             $FilesToDownload.Add(@{
-                RemotePath = $key
-                FileName   = $result.Files[$key]
-            })
+                    RemotePath = $key
+                    FileName   = $result.Files[$key]
+                })
         }
     }
 }
 
-# Cleanup jobs
+
 $ScanJobs | Remove-Job
 
 $TotalFiles = $FilesToDownload.Count
@@ -496,18 +501,18 @@ if ($TotalFiles -eq 0) {
 }
 
 
-# ===== PHASE 4: Parallel Download =====
+
 Write-Host "[4/5] Dang khoi tao $MaxDownloadThreads luong tai xuong..." -ForegroundColor Cyan
 
-# Chia files thành batches cho download
+
 $DownloadBatches = @()
 $DownloadBatchSize = [Math]::Ceiling($TotalFiles / $MaxDownloadThreads)
 for ($i = 0; $i -lt $TotalFiles; $i += $DownloadBatchSize) {
     $count = [Math]::Min($DownloadBatchSize, ($TotalFiles - $i))
-    $DownloadBatches += ,$FilesToDownload.GetRange($i, $count)
+    $DownloadBatches += , $FilesToDownload.GetRange($i, $count)
 }
 
-# ScriptBlock cho download
+
 $DownloadJobBlock = {
     param($FileBatch, $SessionOptsHash, $DllPath, $DestDir)
     
@@ -519,6 +524,7 @@ $DownloadJobBlock = {
     $jobOptions.UserName = $SessionOptsHash.UserName
     $jobOptions.Password = $SessionOptsHash.Password
     $jobOptions.GiveUpSecurityAndAcceptAnySshHostKey = $true
+    $jobOptions.PortNumber = $Port
 
     $jobSession = New-Object WinSCP.Session
     
@@ -563,7 +569,7 @@ $DownloadJobBlock = {
     }
 }
 
-# Khởi chạy download jobs
+
 $DownloadJobs = @()
 foreach ($batch in $DownloadBatches) {
     $DownloadJobs += Start-Job -ScriptBlock $DownloadJobBlock -ArgumentList $batch, $SessionOptsHash, $winscpDllPath, $LocalDestination
@@ -575,7 +581,7 @@ $DownloadJobs | Receive-Job
 $DownloadJobs | Remove-Job
 
 
-# ===== COMPLETION =====
+
 Write-Host "`n========================================" -ForegroundColor Green
 Write-Host "HOAN TAT! Kiem tra folder: $LocalDestination" -ForegroundColor Green
 Write-Host "========================================" -ForegroundColor Green
